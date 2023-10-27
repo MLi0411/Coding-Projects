@@ -11,5 +11,5 @@ Dataset: light_and_dark_protein_rf.tsv (cleaned by another program)
 Results: ROC_by_features.png    
 
 ## tumor_classification.py
-A Python program that differentiates between CT scans of four different types of brain tumors and visualizes results with a confusion matrix.
+A Python program that differentiates between CT scans of four different types of brain tumors and visualizes results with a confusion matrix.   
 Dataset source: https://www.kaggle.com/masoudnickparvar/brain-tumor-mri-dataset
