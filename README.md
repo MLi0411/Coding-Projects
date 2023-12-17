@@ -2,7 +2,7 @@
 Samples of coding projects that I have done.
 
 ## goodBookAnalysis.nb.html
-An R program that uses a generalized linear model to determine whether quantitative data of a book can determine how well-liked it is by a particular audience.           
+The html page of an R program that uses a generalized linear model to determine whether quantitative data of a book can determine how well-liked it is by a particular audience.           
 Dataset source: https://zenodo.org/record/4265096#.ZAEGqXbMI2w                  
 
 ## light_and_dark_features_ANN.py
