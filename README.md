@@ -3,7 +3,7 @@ Samples of coding projects that I have done.
 
 ## light_and_dark_classification
 A tensorflow project that classifies light and dark proteins based on several m/z attributes and evaluates results with ROC curves.         
-Dataset: light_and_dark_protein_rf.tsv 
+Dataset: light_and_dark_protein_rf.tsv        
 Note: This is one of many projects I took on during my time as an intern at the Institute for Systems Biology. More of my work is detailed in this project repository: https://github.com/PlantProteomes/SeqComparison/tree/main/scripts                 
 
 ## good_book_analysis
