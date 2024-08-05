@@ -1,0 +1,201 @@
+---
+title: "DS Final Project"
+output: html_notebook
+---
+**Introduction**
+The key question I am trying to explore is: Can a model decide if a book is a "good" book or not from some of its attributes.
+
+My hypothesis: Yes. A model can predict with reasonable accuracy if a book is "good" or not based on its features
+
+**Import useful libraries**
+```{r}
+library(tidyverse) # for general graphing
+library(caret) # confusion matrix
+library(caTools) # sample splitting
+library(dplyr) # for reformatting a column
+library(corrplot) # for making correlation matrix
+```
+
+**Cleaning data**
+
+Reading in Data:
+Here is the dataset I used
+```{r}
+# read in the data
+books_unmod <- read.csv("C:/Users/jli/OneDrive - Eastside Preparatory School/Data Science/Regressions/Data/best_books.csv")
+
+# check data
+glimpse(books_unmod)
+
+# Data: https://zenodo.org/record/4265096#.ZAEGqXbMI2w
+```
+I chose this dataset because:
+- It has many things to pick and choose from
+- I can practice cleaning data and making it work for my project
+
+Getting rid of irrelevant columns
+```{r}
+# remove selected columns
+books <- books_unmod %>% select(-c(bookId, description, isbn, characters, bookFormat, edition, setting, coverImg, bbeVotes, publishDate, title, author, publisher, genres, ratingsByStars, likedPercent, bbeScore))
+
+# check data
+glimpse(books)
+```
+
+Creating binary columns
+```{r}
+# determine if this book belongs in a series
+books$seriesBinary<-ifelse(books$series == "", 0, 1)
+
+# determine if this book is written in English or not
+books$langBinary<-ifelse(books$language == "English", 1, 0)
+
+# determine if this book has won an award
+books$binaryAwards<-ifelse(books$awards == "[]", 0, 1)
+
+# determine if this book is a good book or not
+# the threshold I use is a rating of 4 (i.e. "good" books have >4 ratings)
+books$binary_rating<-factor(ifelse(books$rating<=4,0,1))
+
+# get rid of columns I just fixed
+books <- books %>% select(-c(series, language, awards))
+
+# check on data
+glimpse(books)
+```
+
+Get the first publish year of a book
+```{r}
+# remove the month and data of the date. Original format: x/x/xxxx
+books$firstPublishDate <- str_sub(books$firstPublishDate, -4, -1)
+
+# check on data
+glimpse(books)
+
+# Source: get last characters in a string: https://statisticsglobe.com/r-extract-first-or-last-n-characters-from-string
+```
+Check for NA/white spaces
+```{r}
+# checking for white spaces
+colSums(books == "")
+books <- books  %>% filter(pages != "") 
+books <- books  %>% filter(price != "")
+books <- books  %>% filter(firstPublishDate != "")
+
+# check for NA
+colSums(is.na(books))
+books <- na.omit(books)
+
+# check if there are white spaces or NAs left
+colSums(books == "")
+colSums(is.na(books))
+```
+
+Converting certain character columns to numeric
+```{r}
+# select the columns with character columns
+i <- c(2, 3, 5) 
+
+# convert these columns to be numeric
+books[ , i] <- apply(books[ , i], 2, function(x) as.numeric(as.character(x)))
+
+colSums(is.na(books))
+books <- na.omit(books)
+
+# check if character columns are gone
+glimpse(books)
+
+# Source changing char columns to numeric: https://statisticsglobe.com/convert-data-frame-column-to-numeric-in-r
+```
+
+**Use correlation to determine helpful features**
+I can't use the binary_rating column to test correlations because only numerical values can generate this graph. So instead, I use rating to see which features have strongest correlations
+```{r}
+# generate a correlation matrix
+books_cor = subset(books, select = -c(seriesBinary, langBinary, binaryAwards, binary_rating)) 
+books_cor <- as.data.frame(books_cor)
+M <- cor(books_cor)
+corrplot(M, is.corr = FALSE, method = "square")
+
+# Source: building correlation matrix https://www.geeksforgeeks.org/correlation-matrix-in-r-programming/
+```
+**Visualizing Correlations**
+Correlation between rating and pages
+```{r}
+ggplot(books, aes(x = rating, y = pages)) +
+    geom_point()
+
+# zooming in 
+potential_outliers1 <- books |>
+  filter(pages < 5000)
+
+ggplot(potential_outliers1, aes(x = rating, y = pages)) +
+    geom_point() 
+
+# zooming in some more
+potential_outliers2 <- books |>
+  filter(pages < 2000)
+
+ggplot(potential_outliers2, aes(x = rating, y = pages)) +
+    geom_point() 
+```
+Correlation between rating and price
+```{r}
+ggplot(books, aes(x = rating, y = price)) +
+    geom_point() 
+
+# zooming in 
+potential_outliers3 <- books |>
+  filter(price < 300)
+
+ggplot(potential_outliers3, aes(x = rating, y = price)) +
+    geom_point() 
+
+# zooming in some more
+potential_outliers4 <- books |>
+  filter(price < 25)
+
+ggplot(potential_outliers4, aes(x = rating, y = price)) +
+    geom_point() 
+```
+Conclusions: Outliers could be skewing with the correlations, but getting rid of outliers might be tricky since this is still important information about books. Also, the correlations are not that promising.
+
+
+**Modeling Data**
+```{r}
+# split the data into train and test, 70% to train this time
+set.seed(142) 
+sampleSplit <- sample.split(Y=books$binary_rating, SplitRatio=0.7) 
+train <- subset(x=books, sampleSplit==TRUE) 
+test <- subset(x=books, sampleSplit==FALSE)
+
+# model based on the train set
+model <- glm(binary_rating ~ binaryAwards + pages + price + numRatings + langBinary + seriesBinary + firstPublishDate, family = binomial(link='logit'), data=train)
+
+# make another model with the best predictor features
+model_curated <- glm(binary_rating ~ pages + seriesBinary + firstPublishDate + binaryAwards, family = binomial(link='logit'), data=train)
+
+# check how the model is doing
+summary(model)
+summary(model_curated)
+```
+Predictions
+```{r}
+# use predict on the test set to determine accuracy
+results_curated<- predict(model_curated, newdata=test, type='response')
+results_curated <- ifelse(results_curated > 0.5,1,0)
+
+# Confusion matrix - true and false positives/negatives
+confusionMatrix(factor(results_curated), factor(test$binary_rating))
+```
+This is definitely not a great answer to my question because a lot of crucial information about the book such as character, setting, and author are ignored. Also a threshold of 4 is not great because it makes some features like awards not as important 
+
+If I have more time:
+- Find a dataset with a better distribution of ratings
+- I would try to incorporate the nonnumerical features (somehow) to get more reliable results
+
+**Quiz Question**
+What is one reason I removed columns (any column)?
+
+
+
