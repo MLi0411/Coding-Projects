@@ -1,0 +1,17 @@
+<xml>
+    <page>
+        <title>G</title>
+        <id>1</id>
+        <text>[[B]] [[C]]</text>
+    </page>
+    <page>
+        <title>B</title>
+        <id>2</id>
+        <text> </text>
+    </page>
+    <page>
+        <title>C</title>
+        <id>3</id>
+        <text>[[F|G]]</text>
+    </page>
+</xml>
